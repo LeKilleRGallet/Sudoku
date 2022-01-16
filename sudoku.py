@@ -1,11 +1,15 @@
 import numpy as np 
-import os 
+import os
+import random
 
 def clear():
     if os.name == "posix":
         os.system("clear")
     elif os.name == ("ce", "nt", "dos"):
         os.system("cls")
+
+class Found(Exception):
+    pass
 
 def random_matrix():
     matrix = np.zeros((9,9))
@@ -80,6 +84,7 @@ def grid(matrix):
                             if plus > 1:
                                 return False
     return True
+
 def game(matrix):
     print_matrix(matrix)
     o = "continue"
@@ -157,16 +162,128 @@ def game(matrix):
                 else:
                     j += 1
 
+def validator(grid, num, row, col, l_col, subgrid_size):
+    if not num in grid[row]:
+        if not num in l_col:
+            subgrid=[] ##try
+            try:
+                for subrow in range(1,subgrid_size+1):
+                    for subcol in range(1,subgrid_size+1):
+                        if row<(subgrid_size*subrow) and col<(subgrid_size*subcol):
+                            # print('i={}'.format(i), 'row={}'.format(row), 'col={}'.format(col), 'subrow={}'.format(subrow), 'subcol={}'.format(subcol), 'subgrid_size={}'.format(subgrid_size))
+                            subgrid=[grid[j][subgrid_size*(subcol-1):subgrid_size*subcol] for j in range(subgrid_size*(subrow-1),subgrid_size*subrow)]
+                            raise Found
+            except Found:
+                if not (any(num in _ for _ in subgrid)): ##validate if num is in 'subgrid' unnesting 'subgrid'
+                    return True
+    return False
+
+def check(grid):
+    # print(np.array(grid))
+    for row in range(0,len(grid)):
+        for col in range(0,len(grid)):
+            if grid[row][col]==0:
+                # print('in')
+                return False
+    # print(grid)
+    # print('return check ok')
+    return True
+
+
+def filler(grid,subgrid_size):
+
+    number_list=[*range(1,len(grid)+1)]
+
+    for i in range(len(grid)**2):
+        row, col = i//len(grid), i%len(grid)
+        if grid[row][col]==0:
+            random.shuffle(number_list)
+            # number_list = random.sample([*range(1,len(grid)+1)], counts = len_list, k = len(grid)*2)
+            l_col = [l_row[col] for l_row in grid] #list of column values
+            for num in number_list:
+                if validator(grid, num, row, col, l_col, subgrid_size):
+                    grid[row][col] = num
+                    if check(grid):
+                        # print('return check')
+                        return grid
+                    else:
+                        if filler(grid,subgrid_size):
+                            # print('return filler interno')
+                            return grid
+            break #if no number is found in the row, break the loop and try again with a new number_list
+    grid[row][col] = 0
+
+def solver(grid,subgrid_size):
+    # print('in solver')
+    global counter
+
+    number_list=[*range(1,len(grid)+1)]
+
+    for i in range(len(grid)**2):
+        row, col = i//len(grid), i%len(grid)
+        if grid[row][col]==0:
+            random.shuffle(number_list)
+            # number_list = random.sample([*range(1,len(grid)+1)], counts = len_list, k = len(grid)*2)
+            l_col = [l_row[col] for l_row in grid] #list of column values
+            for num in number_list:
+                if validator(grid, num, row, col, l_col, subgrid_size):
+                    grid[row][col] = num
+                    if check(grid):
+                        # print('in check return')
+                        counter += 1
+                        break
+                    else:
+                        if solver(grid,subgrid_size):
+                            # print('return filler interno')
+                            return grid ## or True???
+            break
+    grid[row][col] = 0
+
+
+def remove(grid, subgrid_size, difficulty_level):
+    # print('in remove')
+    global counter
+    attempts = difficulty_level*(len(grid)//subgrid_size)
+    counter = 1
+    while attempts > 0:
+        # print('in while1')
+        row, col = random.randint(0,len(grid)-1), random.randint(0,len(grid)-1)
+        while grid[row][col]==0:
+            # print('in while2')
+            row, col = random.randint(0,len(grid)-1), random.randint(0,len(grid)-1)
+        backup, grid[row][col] = grid[row][col], 0
+        # copyGrid = grid[:]###????
+        counter=0
+        solver(grid,subgrid_size)
+
+        if counter != 1:
+            # print('in counter != 1')
+            grid[row][col] = backup
+            # print(np.array(grid))
+            attempts -= 1
+    
+    return grid
+            
+
+
+
 def run():
     clear()
-    sudoku_size = int(input('• para sudoku 2x2 ingrese 1\n• para sudoku 3x3 ingrese 2\n\n  Ingrese el tamaño del sudoku: '))
-    if sudoku_size not in [1,2]:
+    grid_size = int(input('• para sudoku 4x4 con subcuadriculas 2x2 ingrese 4\n• para sudoku 9x9 con subcuadriculas 3x3 ingrese 9\n  Ingrese el tamaño de las celdas del sudoku: '))
+    if grid_size not in [4,9]:
         while True:
             clear()
             print("La entrada no es válida, por favor ingresar una opcion valida")
-            sudoku_size = int(input('• para sudoku 2x2 ingrese 1\n• para sudoku 3x3 ingrese 2\n\n  Ingrese el tamaño del sudoku: '))
-            if sudoku_size in [1,2]:
+            grid_size = int(input('• para sudoku 4x4 con subcuadriculas 2x2 ingrese 4\n• para sudoku 9x9 con subcuadriculas 3x3 ingrese 9\n  Ingrese el tamaño de las celdas del sudoku: '))
+            if grid_size in [4,9]:
                 break
+    
+    subgrid_size = None
+    if grid_size == 4:
+        subgrid_size = 2
+    elif grid_size == 9:
+        subgrid_size = 3
+
 
     clear()
     difficulty_level = int(input('• para dificultad fácil ingrese 1\n• para dificultad media ingrese 2\n• para dificultad dificil ingrese 3\n\n  Ingrese el grado de dificultad: '))
@@ -177,44 +294,16 @@ def run():
             difficulty_level = int(input('• para dificultad fácil ingrese 1\n• para dificultad media ingrese 2\n• para dificultad dificil ingrese 3\n\n  Ingrese el grado de dificultad: '))
             if difficulty_level in [1,2,3]:
                 break
-
+    
     clear()
-    if sudoku_size == 1:
-        if difficulty_level == 1:
-            matrix = np.matrix([
-                        [4,0,  0,0], 
-                        [0,0,  0,3],
-                        [1,0,  0,0],
-                        [0,0,  0,2]
-                        ])
-            
+    zero_grid=[[0]*grid_size for i in range(grid_size)]
 
-        elif difficulty_level == 2:
-            pass
-        elif difficulty_level == 3:
-            pass
+    fully_grid=filler(zero_grid,subgrid_size)
 
-    elif sudoku_size == 2:
-        if difficulty_level == 1:
-            pass
-        elif difficulty_level == 2:
-            matrix = np.matrix([
-                        [9,0,7,  8,0,0,  0,6,0], 
-                        [0,0,6,  7,0,0,  1,8,0],
-                        [0,1,0,  0,0,0,  0,0,0],
-                        [0,0,8,  0,0,4,  0,0,0],
-                        [1,0,0,  0,5,0,  0,0,3],
-                        [0,0,0,  0,9,0,  0,7,8],
-                        [0,0,0,  0,1,0,  0,0,0],
-                        [6,0,0,  4,0,0,  0,0,5],
-                        [5,0,0,  0,0,9,  0,0,1]
-                        ])
+    ready_grid=remove(fully_grid,subgrid_size,difficulty_level)
 
-        elif difficulty_level == 3:
-            pass
-
-    game(matrix)
-
+    game(np.array(ready_grid))
+    
 
 if __name__ == "__main__":
     run()
