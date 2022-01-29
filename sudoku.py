@@ -19,34 +19,40 @@ def random_matrix():
     return matrix
 
 
-def print_matrix(matrix):
+def print_matrix(grid, subgrid_size):
     clear()
-    print("Para retroceder presione S\nPara avanzar D\nPara verificar que este correcto V\nPara salir E\nPara ir a las casillas vacías X\nPara subir U\nPara bajar O")
-    sq = np.sqrt(len(matrix))
-    for i in range(len(matrix)):
-        if i % sq == 0:
-            print("")
-        print("||", end = "")    
-        for j in range(len(matrix)):
-            if j==len(matrix)-1:
-                if matrix[i,j] == 0:
-                    print("_",end = "||") 
-                else:    
-                     print(matrix[i,j],end = "||") 
-            if j > 0 and j %sq == 0:    
-                print(end = "|")
-            if j!=len(matrix)-1:
-                if matrix[i,j] == 0:
-                    print("_",end = " ") 
-                else:    
-                    print(matrix[i,j],end = " ")
-        print("")    
+    print("\n\tPara retroceder presione S\n\tPara avanzar presione D\n\tPara salir presione E\n\tPara ir a las casillas vacías presione X\n\tPara subir presione U\n\tPara bajar presione O\n")
 
-def validate_value(i,j,matrix,val_op):
-    for k in range(len(matrix)):
-        if val_op == matrix[i,k] or val_op == matrix[k,j]:
-            return False
-    return True
+    print('\t      ', end='')
+    for i in range(len(grid)):
+        if i > 0 and i % subgrid_size == 0:
+            print('   ', end='')
+        print(i+1, end=' ')
+    
+    print("")
+
+    print('\t     ', end='')
+    print('='*(((len(grid)+1)*2)+(3*(subgrid_size-1))), end='')
+
+    for i in range(len(grid)):
+        if i % subgrid_size == 0:
+            print("")
+        print('\t%d'% (i+1), end="  ")
+        print("|| ", end = "")
+        for j in range(len(grid)):
+            if (j != 0) and (j%subgrid_size == 0):
+                print(end = " | ")
+
+            if (j==(len(grid)-1)) and grid[i,j] == 0:
+                print("_",end = " ||") 
+            elif (j==(len(grid)-1)) and grid[i,j] != 0:
+                print(grid[i,j],end = " ||") 
+            elif (j!=(len(grid)-1)) and grid[i,j] == 0:
+                print("_",end = " ")
+            elif (j!=(len(grid)-1)) and grid[i,j] != 0:
+                print(grid[i,j],end = " ")
+        print("")
+    print('\n')
 
 def zero_matrix(matrix):
     for i in range(len(matrix)):            
@@ -54,113 +60,6 @@ def zero_matrix(matrix):
             if  matrix[i,j] == 0:
                 return i,j
     return False            
-
-def validate_matrix(matrix):
-    a = np.zeros((3, 2))
-    for i in range(len(matrix)):            
-        for j in range(len(matrix)):
-            plus = 0
-            for k in range(len(matrix)):
-                if  matrix[i,j] == matrix[i,k] or  matrix[i,j] == matrix[k,j]:
-                    plus += 1
-                    if plus > 2:
-                        return False
-    return True
-
-def grid(matrix):
-    plus = 0
-    sq = int(np.sqrt(len(matrix)))
-    for i in range(sq):
-        for j in range(sq):
-            for ii in range(sq*i, sq*(i+1)):
-                for jj in range(sq*j, sq*(j+1)):
-                    for ix in range(sq*i, sq*(i+1)):
-                        for jy in range(sq*j, sq*(j+1)):
-                            if jj != jy and matrix[ii,jj] == matrix[ix,jy]:
-                                #print(matrix[ii,jj], matrix[ix,jy],"     ",ii,jj, ix, jy)
-                                plus += 1
-                            if ii != ix and matrix[ii,jj] == matrix[ix,jy]:
-                                plus += 1
-                            if plus > 1:
-                                return False
-    return True
-
-def game(matrix):
-    print_matrix(matrix)
-    o = "continue"
-    while o != "exit":
-        for i in range(len(matrix)):
-            j = 0
-            if o == "exit":
-                break
-            while j < len(matrix):
-                if matrix[i,j] == 0:
-                    print("Inserte un valor para la casilla (%d, %d): "% (i,j), end= " ")
-                    op = input()
-                    if op == "e":
-                        o = "exit"
-                        break
-                    elif op == "u":
-                        if i == 0:
-                            i = len(matrix)-1
-                        else:
-                            i -= 1
-                    elif op == "o":
-                        if i == len(matrix)-1:
-                            i = 0
-                        else:
-                            i += 1
-                    elif op == "s":
-                        if j == 0:
-                            i -= 1
-                            j = len(matrix)-1
-                            if matrix[i,j] != 0:
-                                j -= 1
-                                if matrix[i,j] != 0:
-                                    j -= 1
-                        else:
-                            j -= 1
-                            if matrix[i,j] != 0:
-                                if j == 0:
-                                    i -= 1
-                                    j = len(matrix)-1
-                                    if matrix[i,j] != 0:
-                                        j -= 1
-                        print_matrix(matrix, len(matrix))
-                    elif op == "x":
-                        if zero_matrix(matrix, len(matrix)) != False:
-                            i,j = zero_matrix(matrix, len(matrix))
-                        else:
-                            print("Ya esta completa")    
-                    elif op == "d":
-                        if j == len(matrix)-1:
-                            i += 1
-                            j = 0
-                        else:    
-                            j += 1
-                    elif op == "v":
-                        val_mat = validate_matrix(matrix,len(matrix))    
-                        val_grid = grid(matrix, len(matrix))        
-                        if val_mat == False or val_grid == False:
-                            print("No esta bien :(")
-                        else:
-                            print("Felicidades, lo lograste")
-                    elif op in ["1","2","3","4","5","6","7","8","9"]:        
-                        val_op = int(op)
-                        if 1 <= val_op <=9:        
-                            value = validate_value(i,j,matrix,len(matrix),val_op)
-                            if value == False:
-                                print_matrix(matrix, len(matrix))
-                                print("No es un número válido, Inserta otro número")
-                            else:    
-                                matrix[i,j] = int(op)
-                                j += 1
-                                print_matrix(matrix, len(matrix))
-                    else:
-                        print_matrix(matrix, len(matrix))
-                        print("No es una entrada válida")
-                else:
-                    j += 1
 
 def validator(grid, num, row, col, l_col, subgrid_size):
     if not num in grid[row]:
@@ -179,14 +78,11 @@ def validator(grid, num, row, col, l_col, subgrid_size):
     return False
 
 def check(grid):
-    # print(np.array(grid))
     for row in range(0,len(grid)):
         for col in range(0,len(grid)):
             if grid[row][col]==0:
                 # print('in')
                 return False
-    # print(grid)
-    # print('return check ok')
     return True
 
 
@@ -266,6 +162,86 @@ def remove(grid, subgrid_size, difficulty_level):
             
 
 
+def game(grid, subgrid_size):
+    #agregar que el usuario pueda ir a una celda de su eleccion de inmediato
+    #agregar que el usuario pueda identificar cuales son las celdas que vienen por defecto y que no se pueden modificar
+    base_grid=[_[:] for _ in grid]#do a deepcopy of the grid
+    grid=np.array(grid)
+    print_matrix(grid, subgrid_size)
+    while True:
+        for col in range(len(grid)):
+            row = 0
+            while row < len(grid):
+                if base_grid[col][row] == 0:
+                    try:
+                        op= input("\tInserte un valor para la casilla (%d, %d): "% (row+1,col+1))
+                        op= int(op)
+                        if op in [*range(1,len(grid)+1)]:
+                            l_col = [l_row[row] for l_row in grid]
+                            if validator(grid, op, col, row, l_col, subgrid_size):
+                                grid[col,row]=op
+                                row+=1
+                                print_matrix(grid, subgrid_size)
+                            else:
+                                print('\teste valor ya se encuentra en la fila, columna o caja')
+                        else:
+                            print_matrix(grid, subgrid_size)
+                            print('\tel numero debe estar entre 1 y %d vuelve a intentarlo'% (len(grid)+1))
+
+                    except ValueError: #if user entered a string
+
+                        op= op.lower()
+
+                        if op == "e":
+                            aborted=input('\testas seguro que quieres salir? (s/n)')
+                            if aborted.lower() == 's':
+                                raise SystemExit('\n\tel juego ha finalizado con exito')
+                        elif op == "u":
+                            if col == 0:
+                                col = len(grid)-1
+                            else:
+                                col -= 1
+                        elif op == "o":
+                            if col == len(grid)-1:
+                                col = 0
+                            else:
+                                col += 1
+                        elif op == "s":
+                            if row == 0:
+                                col -= 1
+                                row = len(grid)-1
+                                if grid[col,row] != 0:
+                                    row -= 1
+                                    if grid[col,row] != 0:
+                                        row -= 1
+                            else:
+                                row -= 1
+                                if grid[col,row] != 0:
+                                    if row == 0:
+                                        col -= 1
+                                        row = len(grid)-1
+                                        if grid[col,row] != 0:
+                                            row -= 1
+                            print_matrix(grid, subgrid_size)
+                        elif op == "x":
+                            if zero_matrix(grid) != False:
+                                col,row = zero_matrix(grid)
+                            else:
+                                print("Ya esta completa")    
+                        elif op == "d":
+                            if row == len(grid)-1:
+                                col += 1
+                                row = 0
+                            else:
+                                row += 1
+                        else:
+                            print_matrix(grid, subgrid_size)
+                            print("No es una entrada válida")
+                else:
+                    if check(grid):
+                        raise SystemExit('\n\tEnhorabuena! lograste resolver el sudoku\n\tGracias por jugar\n')
+                    row += 1
+
 
 def run():
     clear()
@@ -302,7 +278,7 @@ def run():
 
     ready_grid=remove(fully_grid,subgrid_size,difficulty_level)
 
-    game(np.array(ready_grid))
+    game(ready_grid, subgrid_size)
     
 
 if __name__ == "__main__":
