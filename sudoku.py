@@ -1,8 +1,9 @@
+from string import punctuation
 import pygame
-import math 
-import numpy as np 
 import os
 import random
+from datetime import datetime
+from math import e
 
 
 class Found(Exception):
@@ -13,6 +14,11 @@ def clear():
         os.system("clear")
     elif os.name == ("ce", "nt", "dos"):
         os.system("cls")
+
+def exit_game():
+    clear()
+    pygame.quit()
+    raise SystemExit('Gracias por jugar')
 
 def validator(grid, num, row, col, l_col, subgrid_size):
     if not num in grid[row]:
@@ -114,11 +120,11 @@ def draw_box(screen, x, y, dif):
         pygame.draw.line(screen, (255, 0, 0), ( (x + i)* dif, y * dif ), ((x + i) * dif, y * dif + dif), 7)
 
 # Function to draw required lines for making Sudoku grid        
-def draw(screen, dif, grid, grid_size, font1):
+def draw(screen, dif, grid, font1):
     # Draw the lines
         
-    for i in range (grid_size):
-        for j in range (grid_size):
+    for i in range (len(grid)):
+        for j in range (len(grid)):
             if grid[i][j]!= 0:
 
                 # Fill blue color in already numbered grid
@@ -129,7 +135,7 @@ def draw(screen, dif, grid, grid_size, font1):
                 screen.blit(text1, (i * dif + 15, j * dif + 15))
     # Draw lines horizontally and verticallyto form grid        
     for i in range(10):
-        if (i % (grid_size)**(1/2)) == 0:
+        if (i % (len(grid))**(1/2)) == 0:
             thick = 7
         else:
             thick = 1
@@ -157,23 +163,23 @@ def congratulations(screen, font1):
     screen.blit(text, (20, 600))    
 
 # Check if the value entered in board is valid
-def valid(m, i, j, val,grid_size):
-    for it in range(grid_size):
-        if m[i][it]== val:
+def valid(grid, q, p, val):
+    for k in range(len(grid)):
+        if grid[q][k]== val:
             return False
-        if m[it][j]== val:
+        if grid[k][p]== val:
             return False
-    sq = int((grid_size)**(1/2))        
-    it = i//sq
-    jt = j//sq
+    sq = int((len(grid))**(1/2))        
+    it = q//sq
+    jt = p//sq
     for i in range(it * sq, it * sq + sq):
         for j in range (jt * sq, jt * sq + sq):
-            if m[i][j]== val:
+            if grid[i][j]== val:
                 return False
     return True
 
 # Solves the sudoku board using Backtracking Algorithm
-def solve(grid, i, j):
+def solve(grid, screen, dif, font1, i=0, j=0):
     min = len(grid) -1
     
     while grid[i][j]!= 0:
@@ -186,43 +192,41 @@ def solve(grid, i, j):
             return True
     pygame.event.pump()
     for it in range(1, 10):
-        if valid(grid, i, j, it,grid_size)== True:
+        if valid(grid, i, j, it)== True:
             grid[i][j]= it
-            global x, y #####################################################################################################
+            global x, y
             x = i
             y = j
             # white color background\
             screen.fill((255, 255, 255))
-            draw()
-            draw_box()
+            draw(screen, dif, grid, font1)
+            draw_box(screen, x, y, dif)
             pygame.display.update()
             pygame.time.delay(20)
-            if solve(grid, i, j)== 1:
+            if solve(grid, screen, dif, font1, i, j)== 1:
                 return True
             else:
                 grid[i][j]= 0
             # white color background\
             screen.fill((255, 255, 255))
         
-            draw()
-            draw_box()
+            draw(screen, dif, grid, font1)
+            draw_box(screen, x, y, dif)
             pygame.display.update()
             pygame.time.delay(50)
     return False
 
 # Display instruction for the game
-def instruction(myname):
-    text0 = font2.render("Hola %s, espero que te diviertas jugando"%(myname), 1, (0, 0, 0))
+def instruction(name, font2, screen):
+    text0 = font2.render("Hola %s, espero que te diviertas jugando"%(name), 1, (0, 0, 0))
     text1 = font2.render("Presiona D para reiniciar el tablero, R para limpiarlo, S para ", 1, (0, 0, 0))
-    text2 = font2.render("que sea resuelto y para validarlo presiona ENTER", 1, (0, 0, 0))
-    text3 = font2.render("Recuerda ingresar números en el intervalo [1,9]", 1, (0, 0, 0))
+    text2 = font2.render("que sea resuelto, E para salir y para validarlo presiona ENTER", 1, (0, 0, 0))
 
     screen.blit(text0, (10, 520))
     screen.blit(text1, (10, 540))    
     screen.blit(text2, (10, 560))
-    screen.blit(text3, (10, 580))
 # Display options when solved
-def result(myname, grid_size, copy_grid):
+def result(font1, screen):
     text = font1.render("Esta resuelto!! Presiona R o D", 1, (0, 0, 0))
     screen.blit(text, (20, 600))
 
@@ -319,10 +323,11 @@ def get_confirmation(Name, grid_size, difficulty):
 
 
 #########################
-def sudokuPlay():
+def sudokuPlay(grid, name, subgrid_size):
     # initialise the pygame font
     pygame.font.init()
 
+    copy_grid=[_[:] for _ in grid]
     # Total window
     screen = pygame.display.set_mode((500, 650))
 
@@ -333,21 +338,22 @@ def sudokuPlay():
 
     x = 0
     y = 0
-    dif = 500 / grid_size
+    dif = 500 / len(grid)
     val = 0
 
     # Load test fonts for future use
     font1 = pygame.font.SysFont("comicsans", 30)
     font2 = pygame.font.SysFont("comicsans", 17)
 
-    run = True
     flag1 = 0
     flag2 = 0
     rs = 0
     error = 0
     good = 0
+    errors=0
+    kirito = False
     # The loop thats keep the window running
-    while run:
+    while True:
         
         # White color background
         screen.fill((255, 255, 255))
@@ -355,7 +361,7 @@ def sudokuPlay():
         for event in pygame.event.get():
             # Quit the game window
             if event.type == pygame.QUIT:
-                run = False
+                exit_game()
             # Get the mouse position to insert number
             if event.type == pygame.MOUSEBUTTONDOWN:
                 flag1 = 1
@@ -407,52 +413,112 @@ def sudokuPlay():
                     rs = 0
                     error = 0
                     flag2 = 0
-                    grid =[[0]*grid_size for i in range(grid_size)]
+                    grid =[[0]*len(grid) for i in range(len(grid))]
                 # If D is pressed reset the board to default
                 if event.key == pygame.K_d:
                     rs = 0
                     error = 0
                     flag2 = 0
                     grid = copy_grid
+                 # IF E is pressed exit the game
+                if event.key == pygame.K_e:
+                        exit_game()
         if flag2 == 1:
-            if solve(grid, 0, 0)== False:
+            kirito = True
+            if solve(grid, screen, dif, font1)== False:
                 error = 1
             else:
                 rs = 1
             flag2 = 0
         if val != 0:        
-            draw_val(val)
+            draw_val(screen, val, dif, font1, x, y)
             # print(x)
             # print(y)
-            if valid(grid, int(x), int(y), val,grid_size)== True:
-                grid[int(x)][int(y)]= val
-                flag1 = 0
+            if copy_grid[int(x)][int(y)] == 0:##avoid to insert a number in a base cell
+                if valid(grid, int(x), int(y), val)== True:
+                    grid[int(x)][int(y)]= val
+                    flag1 = 0
+                else:
+                    grid[int(x)][int(y)]= 0
+                    errors +=1
+                    error2(screen, font1)
+                val = 0
             else:
-                grid[int(x)][int(y)]= 0
-                error2()
-            val = 0
+                val = 0
         
         if error == 1:
-            error1()
+            error1(screen, font1)
         if good == 1:
-            congratulations()    
+            congratulations(screen, font1)
+            end_time = datetime.now()
+            break
         if rs == 1:
-            result(myname, grid_size, copy_grid)    
-        draw()
+            result(font1, screen)
+        draw(screen, dif, grid, font1)
         if flag1 == 1:
-            draw_box()    
-        instruction(myname)
+            draw_box(screen, x, y, dif)
+        instruction(name, font2, screen)
 
         # Update window
         pygame.display.update()
 
     # Quit pygame window
     pygame.quit()
+
+    return (end_time, errors, kirito)
+    
 #########################
 
+def get_score(time, difficulty, size, errors):
 
-def run():
+    time_multiplier = 1
+
+    max_time_for_bonus = ((((size)+(e**((size**(1/2))+(size/3))))**(1/2))-(4/difficulty))*60
+
+    if time < max_time_for_bonus:
+        time_multiplier = 1.1
+        excess_time = max_time_for_bonus-time
+        time_multiplier += excess_time*0.0025
+
+    score = ((100000000*difficulty*size)/time)-(errors*50)*time_multiplier
+
+    score = int(score)
+
+    if score > 0:
+        return score
+    else:
+        return 0
+
+def save_score(name, score):
     
+
+    while True:
+        try:
+            confirmation = int(input('Hola %s \nTu puntuacion es %s\n¿Deseas guardarla?\n• 1 para guardarla\n• 2 para no guardarla\n'%(name, score)))
+            if confirmation==1:
+                with open('scores.txt', 'a') as file:
+                    file.write(name + ' ' + str(score) + '\n')
+                    break
+            elif confirmation==2:
+                reconfirmation = int(input('¿Estas seguro que deseas no guardar la puntuacion? \n• 1 para no confirmar no guardarla\n• 2 para guardar'))
+                if reconfirmation==1:
+                    break
+                elif reconfirmation==2:
+                    with open('scores.txt', 'a') as file:
+                        file.write(name + '\t' + str(score) + '\n')
+                        break
+                else:
+                    print("La entrada no es válida, por favor ingresar una opcion valida")
+                    continue
+            else:
+                print("La entrada no es válida, por favor ingresar una opcion valida")
+                continue
+        except ValueError:
+            print('La entrada unicamente puede ser un numero entero, por favor vuelve a intentarlo')
+            continue
+
+def play():
+
     clear()
     while True:
 
@@ -462,7 +528,7 @@ def run():
 
         difficulty = get_difficulty()
         
-        confirmation = get_confirmation()
+        confirmation = get_confirmation(name, grid_size, difficulty)
 
         if confirmation == 1:
             clear()
@@ -478,7 +544,67 @@ def run():
 
     ready_grid=remove(fully_grid,subgrid_size,difficulty)
 
-    sudokuPlay(ready_grid,name,grid_size,subgrid_size)
+    start_time=datetime.now()
+
+    end_time, errors, kirito = sudokuPlay(ready_grid,name,subgrid_size)
+
+    total_time= end_time - start_time
+
+    score=get_score(total_time.seconds, difficulty, grid_size, errors)
+
+    if kirito==False:
+        clear()
+        print('Felicitaciones completaste el sudoku en %s minutos y %s segundos'%(total_time.seconds//60, total_time.seconds%60))
+
+        save_score(name, score)
+
+def show_highscore():
+
+    clear()
+    print('Puntuaciones:\n')
+    ##do a header with name and score aligned
+    print(f'{("Nombre".center(20))}\t\t{("Puntuacion".center(40))}')
+    print('-'*70)
+    #sort the scores by score
+    with open('scores.txt', 'r') as file:
+        lines = file.readlines()
+        lines.sort(key=lambda x: int(x.split()[1]), reverse=True)
+        file.close()
+        #print scores using format sortes by score and enumerate
+        for i, line in enumerate(lines):
+            print(f'{i+1:>3}. {line.split()[0]:<30} \t\t{line.split()[1]:<10}')
+    
+    print('\n')
+    input('Presione enter para continuar')
+
+def run():
+    
+    while True:
+        clear()
+        print('Bienvenido al juego de Sudoku\n')
+        print('1. Jugar\n')
+        print('2. Ver puntuaciones\n')
+        print('3. Salir\n')
+        try:
+            option = int(input('Ingrese una opcion: '))
+            if option == 1:
+                play()
+            elif option == 2:
+                clear()
+                show_highscore()
+
+            elif option == 3:
+                clear()
+                exit_game()
+            else:
+                print('La opcion ingresada no es valida, por favor ingrese una opcion valida')
+                continue
+        except ValueError:
+            print('La entrada unicamente puede ser un numero entero, por favor vuelve a intentarlo')
+            continue
+    
+
+
 
 if __name__ == "__main__":
     run()
