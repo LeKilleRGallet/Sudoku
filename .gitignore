@@ -1,3 +1,7 @@
 venv/
 sudoku_2.py
 .vscode
+Proof00.py
+pygame_og.py
+Sudoku_ui.py
+__pycache__

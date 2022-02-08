@@ -1,6 +1,12 @@
+import pygame
+import math 
 import numpy as np 
 import os
 import random
+
+
+class Found(Exception):
+    pass
 
 def clear():
     if os.name == "posix":
@@ -8,68 +14,14 @@ def clear():
     elif os.name == ("ce", "nt", "dos"):
         os.system("cls")
 
-class Found(Exception):
-    pass
-
-def random_matrix():
-    matrix = np.zeros((9,9))
-    for i in range(len(matrix)):
-        for j in range(len(matrix)):
-            matrix[i,j] = np.random.randint(1,10)
-    return matrix
-
-
-def print_matrix(grid, subgrid_size):
-    clear()
-    print("\n\tPara retroceder presione S\n\tPara avanzar presione D\n\tPara salir presione E\n\tPara ir a las casillas vacías presione X\n\tPara subir presione U\n\tPara bajar presione O\n")
-
-    print('\t      ', end='')
-    for i in range(len(grid)):
-        if i > 0 and i % subgrid_size == 0:
-            print('   ', end='')
-        print(i+1, end=' ')
-    
-    print("")
-
-    print('\t     ', end='')
-    print('='*(((len(grid)+1)*2)+(3*(subgrid_size-1))), end='')
-
-    for i in range(len(grid)):
-        if i % subgrid_size == 0:
-            print("")
-        print('\t%d'% (i+1), end="  ")
-        print("|| ", end = "")
-        for j in range(len(grid)):
-            if (j != 0) and (j%subgrid_size == 0):
-                print(end = " | ")
-
-            if (j==(len(grid)-1)) and grid[i,j] == 0:
-                print("_",end = " ||") 
-            elif (j==(len(grid)-1)) and grid[i,j] != 0:
-                print(grid[i,j],end = " ||") 
-            elif (j!=(len(grid)-1)) and grid[i,j] == 0:
-                print("_",end = " ")
-            elif (j!=(len(grid)-1)) and grid[i,j] != 0:
-                print(grid[i,j],end = " ")
-        print("")
-    print('\n')
-
-def zero_matrix(matrix):
-    for i in range(len(matrix)):            
-        for j in range(len(matrix)):
-            if  matrix[i,j] == 0:
-                return i,j
-    return False            
-
 def validator(grid, num, row, col, l_col, subgrid_size):
     if not num in grid[row]:
         if not num in l_col:
-            subgrid=[] ##try
+            subgrid=[]
             try:
                 for subrow in range(1,subgrid_size+1):
                     for subcol in range(1,subgrid_size+1):
                         if row<(subgrid_size*subrow) and col<(subgrid_size*subcol):
-                            # print('i={}'.format(i), 'row={}'.format(row), 'col={}'.format(col), 'subrow={}'.format(subrow), 'subcol={}'.format(subcol), 'subgrid_size={}'.format(subgrid_size))
                             subgrid=[grid[j][subgrid_size*(subcol-1):subgrid_size*subcol] for j in range(subgrid_size*(subrow-1),subgrid_size*subrow)]
                             raise Found
             except Found:
@@ -81,10 +33,8 @@ def check(grid):
     for row in range(0,len(grid)):
         for col in range(0,len(grid)):
             if grid[row][col]==0:
-                # print('in')
                 return False
     return True
-
 
 def filler(grid,subgrid_size):
 
@@ -94,23 +44,19 @@ def filler(grid,subgrid_size):
         row, col = i//len(grid), i%len(grid)
         if grid[row][col]==0:
             random.shuffle(number_list)
-            # number_list = random.sample([*range(1,len(grid)+1)], counts = len_list, k = len(grid)*2)
             l_col = [l_row[col] for l_row in grid] #list of column values
             for num in number_list:
                 if validator(grid, num, row, col, l_col, subgrid_size):
                     grid[row][col] = num
                     if check(grid):
-                        # print('return check')
                         return grid
                     else:
                         if filler(grid,subgrid_size):
-                            # print('return filler interno')
                             return grid
             break #if no number is found in the row, break the loop and try again with a new number_list
     grid[row][col] = 0
 
 def solver(grid,subgrid_size):
-    # print('in solver')
     global counter
 
     number_list=[*range(1,len(grid)+1)]
@@ -119,167 +65,420 @@ def solver(grid,subgrid_size):
         row, col = i//len(grid), i%len(grid)
         if grid[row][col]==0:
             random.shuffle(number_list)
-            # number_list = random.sample([*range(1,len(grid)+1)], counts = len_list, k = len(grid)*2)
             l_col = [l_row[col] for l_row in grid] #list of column values
             for num in number_list:
                 if validator(grid, num, row, col, l_col, subgrid_size):
                     grid[row][col] = num
                     if check(grid):
-                        # print('in check return')
                         counter += 1
                         break
                     else:
                         if solver(grid,subgrid_size):
-                            # print('return filler interno')
-                            return grid ## or True???
+                            return grid
             break
     grid[row][col] = 0
 
-
 def remove(grid, subgrid_size, difficulty_level):
-    # print('in remove')
     global counter
     attempts = difficulty_level*(len(grid)//subgrid_size)
     counter = 1
     while attempts > 0:
-        # print('in while1')
         row, col = random.randint(0,len(grid)-1), random.randint(0,len(grid)-1)
         while grid[row][col]==0:
-            # print('in while2')
             row, col = random.randint(0,len(grid)-1), random.randint(0,len(grid)-1)
         backup, grid[row][col] = grid[row][col], 0
-        # copyGrid = grid[:]###????
         counter=0
         solver(grid,subgrid_size)
 
         if counter != 1:
-            # print('in counter != 1')
             grid[row][col] = backup
-            # print(np.array(grid))
             attempts -= 1
-    
+
     return grid
-            
+
+#########################################################################
+#########################################################################
+#########################FUNCTIONS PYGAME################################
+#########################################################################
+
+def get_cord(pos, x, y, dif):
+    x = pos[0]//dif
+    y = pos[1]//dif
+
+    return (x, y)
+
+# Highlight the cell selected
+def draw_box(screen, x, y, dif):
+    for i in range(2):
+        pygame.draw.line(screen, (255, 0, 0), (x * dif-3, (y + i)*dif), (x * dif + dif + 3, (y + i)*dif), 7)
+        pygame.draw.line(screen, (255, 0, 0), ( (x + i)* dif, y * dif ), ((x + i) * dif, y * dif + dif), 7)
+
+# Function to draw required lines for making Sudoku grid        
+def draw(screen, dif, grid, grid_size, font1):
+    # Draw the lines
+        
+    for i in range (grid_size):
+        for j in range (grid_size):
+            if grid[i][j]!= 0:
+
+                # Fill blue color in already numbered grid
+                pygame.draw.rect(screen, (51, 153, 255), (i * dif, j * dif, dif + 1, dif + 1))
+                #(0, 153, 153)
+                # Fill grid with default numbers specified
+                text1 = font1.render(str(grid[i][j]), 1, (0, 0, 0))
+                screen.blit(text1, (i * dif + 15, j * dif + 15))
+    # Draw lines horizontally and verticallyto form grid        
+    for i in range(10):
+        if (i % (grid_size)**(1/2)) == 0:
+            thick = 7
+        else:
+            thick = 1
+        pygame.draw.line(screen, (0, 0, 0), (0, i * dif), (500, i * dif), thick)
+        pygame.draw.line(screen, (0, 0, 0), (i * dif, 0), (i * dif, 500), thick)    
+
+# Fill value entered in cell    
+def draw_val(screen, val, dif, font1, x, y):
+    text1 = font1.render(str(val), 1, (0, 0, 0))
+    screen.blit(text1, (x * dif + 15, y * dif + 15))
+
+# Raise error when wrong value entered
+def error1(screen, font1):
+    text1 = font1.render("!Aun no has completado el tablero!", 1, (0, 0, 0))
+    screen.blit(text1, (20, 600))
+
+def error2(screen, font1):
+    text1 = font1.render("No es una entrada válida", 1, (0, 0, 0))
+    screen.blit(text1, (20, 600))
+# Congratulations
+def congratulations(screen, font1):
+    vacio = font1.render(" ", 1, (0, 0, 0))
+    screen.blit(vacio, (20, 600))
+    text = font1.render("Felicidades, lo lograste!!", 1, (0, 0, 0))
+    screen.blit(text, (20, 600))    
+
+# Check if the value entered in board is valid
+def valid(m, i, j, val,grid_size):
+    for it in range(grid_size):
+        if m[i][it]== val:
+            return False
+        if m[it][j]== val:
+            return False
+    sq = int((grid_size)**(1/2))        
+    it = i//sq
+    jt = j//sq
+    for i in range(it * sq, it * sq + sq):
+        for j in range (jt * sq, jt * sq + sq):
+            if m[i][j]== val:
+                return False
+    return True
+
+# Solves the sudoku board using Backtracking Algorithm
+def solve(grid, i, j):
+    min = len(grid) -1
+    
+    while grid[i][j]!= 0:
+        if i<min:
+            i+= 1
+        elif i == min and j<min:
+            i = 0
+            j+= 1
+        elif i == min and j == min:
+            return True
+    pygame.event.pump()
+    for it in range(1, 10):
+        if valid(grid, i, j, it,grid_size)== True:
+            grid[i][j]= it
+            global x, y #####################################################################################################
+            x = i
+            y = j
+            # white color background\
+            screen.fill((255, 255, 255))
+            draw()
+            draw_box()
+            pygame.display.update()
+            pygame.time.delay(20)
+            if solve(grid, i, j)== 1:
+                return True
+            else:
+                grid[i][j]= 0
+            # white color background\
+            screen.fill((255, 255, 255))
+        
+            draw()
+            draw_box()
+            pygame.display.update()
+            pygame.time.delay(50)
+    return False
+
+# Display instruction for the game
+def instruction(myname):
+    text0 = font2.render("Hola %s, espero que te diviertas jugando"%(myname), 1, (0, 0, 0))
+    text1 = font2.render("Presiona D para reiniciar el tablero, R para limpiarlo, S para ", 1, (0, 0, 0))
+    text2 = font2.render("que sea resuelto y para validarlo presiona ENTER", 1, (0, 0, 0))
+    text3 = font2.render("Recuerda ingresar números en el intervalo [1,9]", 1, (0, 0, 0))
+
+    screen.blit(text0, (10, 520))
+    screen.blit(text1, (10, 540))    
+    screen.blit(text2, (10, 560))
+    screen.blit(text3, (10, 580))
+# Display options when solved
+def result(myname, grid_size, copy_grid):
+    text = font1.render("Esta resuelto!! Presiona R o D", 1, (0, 0, 0))
+    screen.blit(text, (20, 600))
 
 
-def game(grid, subgrid_size):
-    #agregar que el usuario pueda ir a una celda de su eleccion de inmediato
-    #agregar que el usuario pueda identificar cuales son las celdas que vienen por defecto y que no se pueden modificar
-    base_grid=[_[:] for _ in grid]#do a deepcopy of the grid
-    grid=np.array(grid)
-    print_matrix(grid, subgrid_size)
+
+#########################################################################
+#########################################################################
+#########################################################################
+#########################################################################
+
+
+
+def get_name():
+
+    clear()
     while True:
-        for col in range(len(grid)):
-            row = 0
-            while row < len(grid):
-                if base_grid[col][row] == 0:
-                    try:
-                        op= input("\tInserte un valor para la casilla (%d, %d): "% (row+1,col+1))
-                        op= int(op)
-                        if op in [*range(1,len(grid)+1)]:
-                            l_col = [l_row[row] for l_row in grid]
-                            if validator(grid, op, col, row, l_col, subgrid_size):
-                                grid[col,row]=op
-                                row+=1
-                                print_matrix(grid, subgrid_size)
-                            else:
-                                print('\teste valor ya se encuentra en la fila, columna o caja')
-                        else:
-                            print_matrix(grid, subgrid_size)
-                            print('\tel numero debe estar entre 1 y %d vuelve a intentarlo'% (len(grid)+1))
+        name = input('Ingrese su nombre: ')
+        if name == '':
+            clear()
+            print("La entrada no es válida, por favor ingresar una opcion valida")
+            continue
 
-                    except ValueError: #if user entered a string
+        return name
 
-                        op= op.lower()
+def get_GridSize():
 
-                        if op == "e":
-                            aborted=input('\testas seguro que quieres salir? (s/n)')
-                            if aborted.lower() == 's':
-                                raise SystemExit('\n\tel juego ha finalizado con exito')
-                        elif op == "u":
-                            if col == 0:
-                                col = len(grid)-1
-                            else:
-                                col -= 1
-                        elif op == "o":
-                            if col == len(grid)-1:
-                                col = 0
-                            else:
-                                col += 1
-                        elif op == "s":
-                            if row == 0:
-                                col -= 1
-                                row = len(grid)-1
-                                if grid[col,row] != 0:
-                                    row -= 1
-                                    if grid[col,row] != 0:
-                                        row -= 1
-                            else:
-                                row -= 1
-                                if grid[col,row] != 0:
-                                    if row == 0:
-                                        col -= 1
-                                        row = len(grid)-1
-                                        if grid[col,row] != 0:
-                                            row -= 1
-                            print_matrix(grid, subgrid_size)
-                        elif op == "x":
-                            if zero_matrix(grid) != False:
-                                col,row = zero_matrix(grid)
-                            else:
-                                print("Ya esta completa")    
-                        elif op == "d":
-                            if row == len(grid)-1:
-                                col += 1
-                                row = 0
-                            else:
-                                row += 1
-                        else:
-                            print_matrix(grid, subgrid_size)
-                            print("No es una entrada válida")
-                else:
+    clear()
+    while True:
+        try:
+            grid_size = int(input('• para sudoku 4x4 con subcuadriculas 2x2 ingrese 4\n• para sudoku 9x9 con subcuadriculas 3x3 ingrese 9\n  Ingrese el tamaño de las celdas del sudoku: '))
+            if grid_size not in [4,9]:
+                    clear()
+                    print("La entrada no es válida, por favor ingresar una opcion valida")
+                    continue
+
+        except ValueError:
+            clear()
+            print("La entrada unicamente puede ser un numero entero, por favor vuelve a intentarlo")
+            continue
+        
+        if grid_size in [4,9]:
+            if grid_size == 4:
+                return (grid_size,2)
+            elif grid_size == 9:
+                return (grid_size,3)
+
+def get_difficulty():
+
+    clear()
+    while True:
+        try:
+            difficulty = int(input('Ingrese la dificultad del juego: \n• 1 para facil \n• 2 para medio \n• 3 para dificil \n• 4 para Leyenda\n'))
+            if difficulty not in [1,2,3,4]:
+                    clear()
+                    print("La entrada no es válida, por favor ingresar una opcion valida")
+                    continue
+
+        except ValueError:
+            clear()
+            print("La entrada unicamente puede ser un numero entero, por favor vuelve a intentarlo")
+            continue
+        
+        if difficulty in [1,2,3,4]:
+            return difficulty
+
+def get_confirmation(Name, grid_size, difficulty):
+    
+    clear()
+
+    if difficulty == 1:
+        str_difficulty = "Fácil"
+    elif difficulty == 2:
+        str_difficulty = "Medio"
+    elif difficulty == 3:
+        str_difficulty = "Dificil"
+    elif difficulty == 4:
+        str_difficulty = "Leyenda"
+
+    while True:
+        try:
+            confirmation = int(input('Hola %s \nhas elegido un tablero de %sx%s con dificultad %s\n¿Deseas confirmar tu seleccion?\n• 1 para confirmarla\n• 2 para cambiar tu seleccion\n'%(Name, grid_size, grid_size, str_difficulty)))
+            if confirmation not in [1,2]:
+                    clear()
+                    print("La entrada no es válida, por favor ingresar una opcion valida")
+                    continue
+
+        except ValueError:
+            clear()
+            print("La entrada unicamente puede ser un numero entero, por favor vuelve a intentarlo")
+            continue
+        
+        if confirmation in [1,2]:
+            return confirmation
+
+
+#########################
+def sudokuPlay():
+    # initialise the pygame font
+    pygame.font.init()
+
+    # Total window
+    screen = pygame.display.set_mode((500, 650))
+
+    # Title and Icon
+    pygame.display.set_caption("SUDOKU")
+    img = pygame.image.load('icon.png')
+    pygame.display.set_icon(img)
+
+    x = 0
+    y = 0
+    dif = 500 / grid_size
+    val = 0
+
+    # Load test fonts for future use
+    font1 = pygame.font.SysFont("comicsans", 30)
+    font2 = pygame.font.SysFont("comicsans", 17)
+
+    run = True
+    flag1 = 0
+    flag2 = 0
+    rs = 0
+    error = 0
+    good = 0
+    # The loop thats keep the window running
+    while run:
+        
+        # White color background
+        screen.fill((255, 255, 255))
+        # Loop through the events stored in event.get()
+        for event in pygame.event.get():
+            # Quit the game window
+            if event.type == pygame.QUIT:
+                run = False
+            # Get the mouse position to insert number
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                flag1 = 1
+                pos = pygame.mouse.get_pos()
+                x, y =get_cord(pos, x, y, dif)
+            # Get the number to be inserted if key pressed
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    x-= 1
+                    flag1 = 1
+                if event.key == pygame.K_RIGHT:
+                    x+= 1
+                    flag1 = 1
+                if event.key == pygame.K_UP:
+                    y-= 1
+                    flag1 = 1
+                if event.key == pygame.K_DOWN:
+                    y+= 1
+                    flag1 = 1
+                if event.key == pygame.K_1:
+                    val = 1
+                if event.key == pygame.K_2:
+                    val = 2
+                if event.key == pygame.K_3:
+                    val = 3
+                if event.key == pygame.K_4:
+                    val = 4
+                if event.key == pygame.K_5:
+                    val = 5
+                if event.key == pygame.K_6:
+                    val = 6
+                if event.key == pygame.K_7:
+                    val = 7
+                if event.key == pygame.K_8:
+                    val = 8
+                if event.key == pygame.K_9:
+                    val = 9
+                if event.key == pygame.K_RETURN:
                     if check(grid):
-                        raise SystemExit('\n\tEnhorabuena! lograste resolver el sudoku\n\tGracias por jugar\n')
-                    row += 1
+                        good = 1
+                    else: 
+                        error = 1    
+                            
+                # If S pressed solves the board    
+                if event.key == pygame.K_s:
+                    flag2 = 1
+                # If R pressed clear the sudoku board
+                if event.key == pygame.K_r:
+                    rs = 0
+                    error = 0
+                    flag2 = 0
+                    grid =[[0]*grid_size for i in range(grid_size)]
+                # If D is pressed reset the board to default
+                if event.key == pygame.K_d:
+                    rs = 0
+                    error = 0
+                    flag2 = 0
+                    grid = copy_grid
+        if flag2 == 1:
+            if solve(grid, 0, 0)== False:
+                error = 1
+            else:
+                rs = 1
+            flag2 = 0
+        if val != 0:        
+            draw_val(val)
+            # print(x)
+            # print(y)
+            if valid(grid, int(x), int(y), val,grid_size)== True:
+                grid[int(x)][int(y)]= val
+                flag1 = 0
+            else:
+                grid[int(x)][int(y)]= 0
+                error2()
+            val = 0
+        
+        if error == 1:
+            error1()
+        if good == 1:
+            congratulations()    
+        if rs == 1:
+            result(myname, grid_size, copy_grid)    
+        draw()
+        if flag1 == 1:
+            draw_box()    
+        instruction(myname)
+
+        # Update window
+        pygame.display.update()
+
+    # Quit pygame window
+    pygame.quit()
+#########################
 
 
 def run():
-    clear()
-    grid_size = int(input('• para sudoku 4x4 con subcuadriculas 2x2 ingrese 4\n• para sudoku 9x9 con subcuadriculas 3x3 ingrese 9\n  Ingrese el tamaño de las celdas del sudoku: '))
-    if grid_size not in [4,9]:
-        while True:
-            clear()
-            print("La entrada no es válida, por favor ingresar una opcion valida")
-            grid_size = int(input('• para sudoku 4x4 con subcuadriculas 2x2 ingrese 4\n• para sudoku 9x9 con subcuadriculas 3x3 ingrese 9\n  Ingrese el tamaño de las celdas del sudoku: '))
-            if grid_size in [4,9]:
-                break
-    
-    subgrid_size = None
-    if grid_size == 4:
-        subgrid_size = 2
-    elif grid_size == 9:
-        subgrid_size = 3
-
-
-    clear()
-    difficulty_level = int(input('• para dificultad fácil ingrese 1\n• para dificultad media ingrese 2\n• para dificultad dificil ingrese 3\n\n  Ingrese el grado de dificultad: '))
-    if difficulty_level not in [1,2,3]:
-        while True:
-            clear()
-            print("La entrada no es válida, por favor ingresar una opcion valida")
-            difficulty_level = int(input('• para dificultad fácil ingrese 1\n• para dificultad media ingrese 2\n• para dificultad dificil ingrese 3\n\n  Ingrese el grado de dificultad: '))
-            if difficulty_level in [1,2,3]:
-                break
     
     clear()
-    zero_grid=[[0]*grid_size for i in range(grid_size)]
+    while True:
+
+        name = get_name()
+
+        grid_size, subgrid_size = get_GridSize()
+
+        difficulty = get_difficulty()
+        
+        confirmation = get_confirmation()
+
+        if confirmation == 1:
+            clear()
+            break
+        else:
+            clear()
+            continue
+
+
+    zero_grid=[[0]*grid_size for _ in range(grid_size)]
 
     fully_grid=filler(zero_grid,subgrid_size)
 
-    ready_grid=remove(fully_grid,subgrid_size,difficulty_level)
+    ready_grid=remove(fully_grid,subgrid_size,difficulty)
 
-    game(ready_grid, subgrid_size)
-    
+    sudokuPlay(ready_grid,name,grid_size,subgrid_size)
 
 if __name__ == "__main__":
     run()
