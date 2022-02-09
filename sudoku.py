@@ -1,9 +1,9 @@
-from string import punctuation
 import pygame
 import os
 import random
 from datetime import datetime
 from math import e
+import time
 
 
 class Found(Exception):
@@ -19,6 +19,19 @@ def exit_game():
     clear()
     pygame.quit()
     raise SystemExit('Gracias por jugar')
+
+def saving():##
+    for i in range(30):##
+        if i%4==0:##
+            r='/'##
+        elif i%4==1:##
+            r='—'##
+        elif i%4==2:##
+            r='\\'##
+        elif i%4==3:##
+            r='|'##
+        print('\t\tGuardando...' + r,end='\r')##
+        time.sleep(0.1)##
 
 def validator(grid, num, row, col, l_col, subgrid_size):
     if not num in grid[row]:
@@ -472,32 +485,28 @@ def sudokuPlay(grid, name, subgrid_size):
 def get_score(time, difficulty, size, errors):
 
     time_multiplier = 1
-
     max_time_for_bonus = ((((size)+(e**((size**(1/2))+(size/3))))**(1/2))-(4/difficulty))*60
-
     if time < max_time_for_bonus:
         time_multiplier = 1.1
         excess_time = max_time_for_bonus-time
         time_multiplier += excess_time*0.0025
 
     score = ((100000000*difficulty*size)/time)-(errors*50)*time_multiplier
-
     score = int(score)
-
     if score > 0:
         return score
     else:
         return 0
 
 def save_score(name, score):
-    
 
     while True:
         try:
-            confirmation = int(input('Hola %s \nTu puntuacion es %s\n¿Deseas guardarla?\n• 1 para guardarla\n• 2 para no guardarla\n'%(name, score)))
+            confirmation = int(input('Tu puntuacion es %s\n¿Deseas guardarla?\n• 1 para guardarla\n• 2 para no guardarla\n'%(name, score)))##
             if confirmation==1:
                 with open('scores.txt', 'a') as file:
                     file.write(name + ' ' + str(score) + '\n')
+                    saving()##
                     break
             elif confirmation==2:
                 reconfirmation = int(input('¿Estas seguro que deseas no guardar la puntuacion? \n• 1 para no confirmar no guardarla\n• 2 para guardar'))
@@ -506,6 +515,7 @@ def save_score(name, score):
                 elif reconfirmation==2:
                     with open('scores.txt', 'a') as file:
                         file.write(name + '\t' + str(score) + '\n')
+                        saving()
                         break
                 else:
                     print("La entrada no es válida, por favor ingresar una opcion valida")
@@ -523,13 +533,9 @@ def play():
     while True:
 
         name = get_name()
-
         grid_size, subgrid_size = get_GridSize()
-
         difficulty = get_difficulty()
-        
         confirmation = get_confirmation(name, grid_size, difficulty)
-
         if confirmation == 1:
             clear()
             break
@@ -537,40 +543,29 @@ def play():
             clear()
             continue
 
-
     zero_grid=[[0]*grid_size for _ in range(grid_size)]
-
     fully_grid=filler(zero_grid,subgrid_size)
-
     ready_grid=remove(fully_grid,subgrid_size,difficulty)
-
     start_time=datetime.now()
-
     end_time, errors, kirito = sudokuPlay(ready_grid,name,subgrid_size)
-
     total_time= end_time - start_time
-
     score=get_score(total_time.seconds, difficulty, grid_size, errors)
 
     if kirito==False:
         clear()
-        print('Felicitaciones completaste el sudoku en %s minutos y %s segundos'%(total_time.seconds//60, total_time.seconds%60))
-
+        print('Felicitaciones %s completaste el sudoku %sx%s en %s minutos y %s segundos'%(name, grid_size, grid_size, total_time.seconds//60, total_time.seconds%60))
         save_score(name, score)
 
 def show_highscore():
 
     clear()
     print('Puntuaciones:\n')
-    ##do a header with name and score aligned
     print(f'{("Nombre".center(20))}\t\t{("Puntuacion".center(40))}')
     print('-'*70)
-    #sort the scores by score
     with open('scores.txt', 'r') as file:
         lines = file.readlines()
         lines.sort(key=lambda x: int(x.split()[1]), reverse=True)
         file.close()
-        #print scores using format sortes by score and enumerate
         for i, line in enumerate(lines):
             print(f'{i+1:>3}. {line.split()[0]:<30} \t\t{line.split()[1]:<10}')
     
@@ -578,7 +573,7 @@ def show_highscore():
     input('Presione enter para continuar')
 
 def run():
-    
+
     while True:
         clear()
         print('Bienvenido al juego de Sudoku\n')
@@ -602,9 +597,6 @@ def run():
         except ValueError:
             print('La entrada unicamente puede ser un numero entero, por favor vuelve a intentarlo')
             continue
-    
-
-
 
 if __name__ == "__main__":
     run()
