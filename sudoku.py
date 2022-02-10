@@ -502,7 +502,7 @@ def save_score(name, score):
 
     while True:
         try:
-            confirmation = int(input('Tu puntuacion es %s\n¿Deseas guardarla?\n• 1 para guardarla\n• 2 para no guardarla\n'%(name, score)))##
+            confirmation = int(input('Tu puntuacion es %s\n¿Deseas guardarla?\n• 1 para guardarla\n• 2 para no guardarla\n'%(score)))##
             if confirmation==1:
                 with open('scores.txt', 'a') as file:
                     file.write(name + ' ' + str(score) + '\n')
@@ -570,7 +570,14 @@ def show_highscore():
             print(f'{i+1:>3}. {line.split()[0]:<30} \t\t{line.split()[1]:<10}')
     
     print('\n')
-    input('Presione enter para continuar')
+    cnt=input('Presione enter para continuar\t')
+    if cnt == 'Hack_Clear_File':
+        with open('scores.txt', 'w') as file:
+            file.write('')
+            file.close()
+        print('Archivo borrado')
+        cnt=input('Presione enter para continuar')
+
 
 def run():
 
