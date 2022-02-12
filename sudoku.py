@@ -336,11 +336,11 @@ def get_confirmation(Name, grid_size, difficulty):
 
 
 #########################
-def sudokuPlay(grid, name, subgrid_size):
+def sudokuPlay(grid, name, copy_grid):
     # initialise the pygame font
     pygame.font.init()
 
-    copy_grid=[_[:] for _ in grid]
+
     # Total window
     screen = pygame.display.set_mode((500, 650))
 
@@ -443,7 +443,7 @@ def sudokuPlay(grid, name, subgrid_size):
             else:
                 rs = 1
             flag2 = 0
-        if val != 0:        
+        if val != 0 and val <= len(grid):
             draw_val(screen, val, dif, font1, x, y)
             # print(x)
             # print(y)
@@ -547,7 +547,8 @@ def play():
     fully_grid=filler(zero_grid,subgrid_size)
     ready_grid=remove(fully_grid,subgrid_size,difficulty)
     start_time=datetime.now()
-    end_time, errors, kirito = sudokuPlay(ready_grid,name,subgrid_size)
+    copy_grid=[_[:] for _ in ready_grid]
+    end_time, errors, kirito = sudokuPlay(ready_grid,name,copy_grid)
     total_time= end_time - start_time
     score=get_score(total_time.seconds, difficulty, grid_size, errors)
 
